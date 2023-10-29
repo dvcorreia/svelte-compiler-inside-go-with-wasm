@@ -1,0 +1,7 @@
+{
+    "name": "svelte-compiler-inside-go",
+    "private": true,
+    "devDependencies": {
+        "svelte": "^3.59.2"
+    }
+}
