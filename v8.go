@@ -3,7 +3,6 @@ package svelte
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 
 	_ "embed"
 
@@ -67,7 +66,7 @@ func (c *V8) Compile(path string, code []byte) (*CompileResult, error) {
 		Css:    string(css),
 	}
 
-	buf := bytes.NewBufferString(";__svelte__.compile(")
+	buf := bytes.NewBufferString(";__svelte__.compile('")
 
 	e := json.NewEncoder(buf)
 	e.SetEscapeHTML(false)
@@ -76,11 +75,12 @@ func (c *V8) Compile(path string, code []byte) (*CompileResult, error) {
 		return nil, err
 	}
 
-	if _, err := buf.WriteString(")"); err != nil {
+	// unread the \n set by the json encoder
+	buf.Truncate(buf.Len() - 1)
+
+	if _, err := buf.WriteString("')"); err != nil {
 		return nil, err
 	}
-
-	fmt.Println(buf.String())
 
 	result, err := c.VM.Eval(path, buf.String())
 	if err != nil {

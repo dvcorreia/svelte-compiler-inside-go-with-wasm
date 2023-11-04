@@ -3,31 +3,26 @@ var __svelte__ = (() => {
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
   var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
     get: (a, b2) => (typeof require !== "undefined" ? require : a)[b2]
   }) : x2)(function(x2) {
     if (typeof require !== "undefined")
       return require.apply(this, arguments);
-    throw new Error('Dynamic require of "' + x2 + '" is not supported');
+    throw Error('Dynamic require of "' + x2 + '" is not supported');
   });
   var __export = (target, all) => {
     for (var name in all)
       __defProp(target, name, { get: all[name], enumerable: true });
   };
-  var __reExport = (target, module, copyDefault, desc) => {
-    if (module && typeof module === "object" || typeof module === "function") {
-      for (let key of __getOwnPropNames(module))
-        if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
-          __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
-    return target;
+    return to;
   };
-  var __toCommonJS = /* @__PURE__ */ ((cache) => {
-    return (module, temp) => {
-      return cache && cache.get(module) || (temp = __reExport(__markAsModule({}), module, 1), cache && cache.set(module, temp), temp);
-    };
-  })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
   // compiler.ts
   var compiler_exports = {};
@@ -54,7 +49,7 @@ var __svelte__ = (() => {
     }
   };
 
-  // ../../node_modules/svelte/compiler.mjs
+  // node_modules/svelte/compiler.mjs
   var now = typeof process !== "undefined" && process.hrtime ? () => {
     const t = process.hrtime();
     return t[0] * 1e3 + t[1] / 1e6;
@@ -219,6 +214,7 @@ var __svelte__ = (() => {
     name: new TokenType("name", startsExpr),
     privateId: new TokenType("privateId", startsExpr),
     eof: new TokenType("eof"),
+    // Punctuation token types.
     bracketL: new TokenType("[", { beforeExpr: true, startsExpr: true }),
     bracketR: new TokenType("]"),
     braceL: new TokenType("{", { beforeExpr: true, startsExpr: true }),
@@ -237,6 +233,19 @@ var __svelte__ = (() => {
     ellipsis: new TokenType("...", beforeExpr),
     backQuote: new TokenType("`", startsExpr),
     dollarBraceL: new TokenType("${", { beforeExpr: true, startsExpr: true }),
+    // Operators. These carry several kinds of properties to help the
+    // parser use them properly (the presence of these properties is
+    // what categorizes them as operators).
+    //
+    // `binop`, when present, specifies that this operator is a binary
+    // operator, and will refer to its precedence.
+    //
+    // `prefix` and `postfix` mark the operator as a prefix or postfix
+    // unary operator.
+    //
+    // `isAssign` marks all of `=`, `+=`, `-=` etcetera, which act as
+    // binary operators with a very low precedence, that should result
+    // in AssignmentExpression nodes.
     eq: new TokenType("=", { beforeExpr: true, isAssign: true }),
     assign: new TokenType("_=", { beforeExpr: true, isAssign: true }),
     incDec: new TokenType("++/--", { prefix: true, postfix: true, startsExpr: true }),
@@ -255,6 +264,7 @@ var __svelte__ = (() => {
     slash: binop("/", 10),
     starstar: new TokenType("**", { beforeExpr: true }),
     coalesce: binop("??", 1),
+    // Keyword token types.
     _break: kw("break"),
     _case: kw("case", beforeExpr),
     _catch: kw("catch"),
@@ -337,23 +347,93 @@ var __svelte__ = (() => {
     }
   }
   var defaultOptions = {
+    // `ecmaVersion` indicates the ECMAScript version to parse. Must be
+    // either 3, 5, 6 (or 2015), 7 (2016), 8 (2017), 9 (2018), 10
+    // (2019), 11 (2020), 12 (2021), 13 (2022), or `"latest"` (the
+    // latest version the library supports). This influences support
+    // for strict mode, the set of reserved words, and support for
+    // new syntax features.
     ecmaVersion: null,
+    // `sourceType` indicates the mode the code should be parsed in.
+    // Can be either `"script"` or `"module"`. This influences global
+    // strict mode and parsing of `import` and `export` declarations.
     sourceType: "script",
+    // `onInsertedSemicolon` can be a callback that will be called
+    // when a semicolon is automatically inserted. It will be passed
+    // the position of the comma as an offset, and if `locations` is
+    // enabled, it is given the location as a `{line, column}` object
+    // as second argument.
     onInsertedSemicolon: null,
+    // `onTrailingComma` is similar to `onInsertedSemicolon`, but for
+    // trailing commas.
     onTrailingComma: null,
+    // By default, reserved words are only enforced if ecmaVersion >= 5.
+    // Set `allowReserved` to a boolean value to explicitly turn this on
+    // an off. When this option has the value "never", reserved words
+    // and keywords can also not be used as property names.
     allowReserved: null,
+    // When enabled, a return at the top level is not considered an
+    // error.
     allowReturnOutsideFunction: false,
+    // When enabled, import/export statements are not constrained to
+    // appearing at the top of the program, and an import.meta expression
+    // in a script isn't considered an error.
     allowImportExportEverywhere: false,
+    // By default, await identifiers are allowed to appear at the top-level scope only if ecmaVersion >= 2022.
+    // When enabled, await identifiers are allowed to appear at the top-level scope,
+    // but they are still not allowed in non-async functions.
     allowAwaitOutsideFunction: null,
+    // When enabled, super identifiers are not constrained to
+    // appearing in methods and do not raise an error when they appear elsewhere.
     allowSuperOutsideMethod: null,
+    // When enabled, hashbang directive in the beginning of file
+    // is allowed and treated as a line comment.
     allowHashBang: false,
+    // When `locations` is on, `loc` properties holding objects with
+    // `start` and `end` properties in `{line, column}` form (with
+    // line being 1-based and column 0-based) will be attached to the
+    // nodes.
     locations: false,
+    // A function can be passed as `onToken` option, which will
+    // cause Acorn to call that function with object in the same
+    // format as tokens returned from `tokenizer().getToken()`. Note
+    // that you are not allowed to call the parser from the
+    // callback—that will corrupt its internal state.
     onToken: null,
+    // A function can be passed as `onComment` option, which will
+    // cause Acorn to call that function with `(block, text, start,
+    // end)` parameters whenever a comment is skipped. `block` is a
+    // boolean indicating whether this is a block (`/* */`) comment,
+    // `text` is the content of the comment, and `start` and `end` are
+    // character offsets that denote the start and end of the comment.
+    // When the `locations` option is on, two more parameters are
+    // passed, the full `{line, column}` locations of the start and
+    // end of the comments. Note that you are not allowed to call the
+    // parser from the callback—that will corrupt its internal state.
     onComment: null,
+    // Nodes have their start and end characters offsets recorded in
+    // `start` and `end` properties (directly on the node, rather than
+    // the `loc` object, which holds line/column data. To also add a
+    // [semi-standardized][range] `range` property holding a `[start,
+    // end]` array with the same numbers, set the `ranges` option to
+    // `true`.
+    //
+    // [range]: https://bugzilla.mozilla.org/show_bug.cgi?id=745678
     ranges: false,
+    // It is possible to parse multiple files into a single AST by
+    // passing the tree produced by parsing the first file as
+    // `program` option in subsequent parses. This will add the
+    // toplevel forms of the parsed file to the `Program` (top) node
+    // of an existing parse tree.
     program: null,
+    // When `locations` is on, you can pass this to record the source
+    // file in every node's `loc` object.
     sourceFile: null,
+    // This value, if given, is stored in every node, whether
+    // `locations` is on or off.
     directSourceFile: null,
+    // When enabled, parenthesized expressions are represented by
+    // (non-standard) ParenthesizedExpression nodes
     preserveParens: false
   };
   var warnedAboutEcmaVersion = false;
@@ -1116,7 +1196,10 @@ var __svelte__ = (() => {
     var isForIn = this.type === types._in;
     this.next();
     if (init.type === "VariableDeclaration" && init.declarations[0].init != null && (!isForIn || this.options.ecmaVersion < 8 || this.strict || init.kind !== "var" || init.declarations[0].id.type !== "Identifier")) {
-      this.raise(init.start, (isForIn ? "for-in" : "for-of") + " loop variable declaration may not have an initializer");
+      this.raise(
+        init.start,
+        (isForIn ? "for-in" : "for-of") + " loop variable declaration may not have an initializer"
+      );
     }
     node2.left = init;
     node2.right = isForIn ? this.parseExpression() : this.parseMaybeAssign();
@@ -1594,7 +1677,8 @@ var __svelte__ = (() => {
     }
   };
   pp$1.isDirectiveCandidate = function(statement) {
-    return statement.type === "ExpressionStatement" && statement.expression.type === "Literal" && typeof statement.expression.value === "string" && (this.input[statement.start] === '"' || this.input[statement.start] === "'");
+    return statement.type === "ExpressionStatement" && statement.expression.type === "Literal" && typeof statement.expression.value === "string" && // Reject parenthesized strings.
+    (this.input[statement.start] === '"' || this.input[statement.start] === "'");
   };
   var pp$2 = Parser.prototype;
   pp$2.toAssignable = function(node2, isBinding, refDestructuringErrors) {
@@ -3253,10 +3337,19 @@ var __svelte__ = (() => {
     state.backReferenceNames.length = 0;
     this.regexp_disjunction(state);
     if (state.pos !== state.source.length) {
-      if (state.eat(41)) {
+      if (state.eat(
+        41
+        /* ) */
+      )) {
         state.raise("Unmatched ')'");
       }
-      if (state.eat(93) || state.eat(125)) {
+      if (state.eat(
+        93
+        /* ] */
+      ) || state.eat(
+        125
+        /* } */
+      )) {
         state.raise("Lone quantifier brackets");
       }
     }
@@ -3272,13 +3365,19 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_disjunction = function(state) {
     this.regexp_alternative(state);
-    while (state.eat(124)) {
+    while (state.eat(
+      124
+      /* | */
+    )) {
       this.regexp_alternative(state);
     }
     if (this.regexp_eatQuantifier(state, true)) {
       state.raise("Nothing to repeat");
     }
-    if (state.eat(123)) {
+    if (state.eat(
+      123
+      /* { */
+    )) {
       state.raise("Lone quantifier brackets");
     }
   };
@@ -3304,23 +3403,56 @@ var __svelte__ = (() => {
   pp$8.regexp_eatAssertion = function(state) {
     var start = state.pos;
     state.lastAssertionIsQuantifiable = false;
-    if (state.eat(94) || state.eat(36)) {
+    if (state.eat(
+      94
+      /* ^ */
+    ) || state.eat(
+      36
+      /* $ */
+    )) {
       return true;
     }
-    if (state.eat(92)) {
-      if (state.eat(66) || state.eat(98)) {
+    if (state.eat(
+      92
+      /* \ */
+    )) {
+      if (state.eat(
+        66
+        /* B */
+      ) || state.eat(
+        98
+        /* b */
+      )) {
         return true;
       }
       state.pos = start;
     }
-    if (state.eat(40) && state.eat(63)) {
+    if (state.eat(
+      40
+      /* ( */
+    ) && state.eat(
+      63
+      /* ? */
+    )) {
       var lookbehind = false;
       if (this.options.ecmaVersion >= 9) {
-        lookbehind = state.eat(60);
+        lookbehind = state.eat(
+          60
+          /* < */
+        );
       }
-      if (state.eat(61) || state.eat(33)) {
+      if (state.eat(
+        61
+        /* = */
+      ) || state.eat(
+        33
+        /* ! */
+      )) {
         this.regexp_disjunction(state);
-        if (!state.eat(41)) {
+        if (!state.eat(
+          41
+          /* ) */
+        )) {
           state.raise("Unterminated group");
         }
         state.lastAssertionIsQuantifiable = !lookbehind;
@@ -3334,24 +3466,45 @@ var __svelte__ = (() => {
     if (noError === void 0)
       noError = false;
     if (this.regexp_eatQuantifierPrefix(state, noError)) {
-      state.eat(63);
+      state.eat(
+        63
+        /* ? */
+      );
       return true;
     }
     return false;
   };
   pp$8.regexp_eatQuantifierPrefix = function(state, noError) {
-    return state.eat(42) || state.eat(43) || state.eat(63) || this.regexp_eatBracedQuantifier(state, noError);
+    return state.eat(
+      42
+      /* * */
+    ) || state.eat(
+      43
+      /* + */
+    ) || state.eat(
+      63
+      /* ? */
+    ) || this.regexp_eatBracedQuantifier(state, noError);
   };
   pp$8.regexp_eatBracedQuantifier = function(state, noError) {
     var start = state.pos;
-    if (state.eat(123)) {
+    if (state.eat(
+      123
+      /* { */
+    )) {
       var min = 0, max = -1;
       if (this.regexp_eatDecimalDigits(state)) {
         min = state.lastIntValue;
-        if (state.eat(44) && this.regexp_eatDecimalDigits(state)) {
+        if (state.eat(
+          44
+          /* , */
+        ) && this.regexp_eatDecimalDigits(state)) {
           max = state.lastIntValue;
         }
-        if (state.eat(125)) {
+        if (state.eat(
+          125
+          /* } */
+        )) {
           if (max !== -1 && max < min && !noError) {
             state.raise("numbers out of order in {} quantifier");
           }
@@ -3366,11 +3519,17 @@ var __svelte__ = (() => {
     return false;
   };
   pp$8.regexp_eatAtom = function(state) {
-    return this.regexp_eatPatternCharacters(state) || state.eat(46) || this.regexp_eatReverseSolidusAtomEscape(state) || this.regexp_eatCharacterClass(state) || this.regexp_eatUncapturingGroup(state) || this.regexp_eatCapturingGroup(state);
+    return this.regexp_eatPatternCharacters(state) || state.eat(
+      46
+      /* . */
+    ) || this.regexp_eatReverseSolidusAtomEscape(state) || this.regexp_eatCharacterClass(state) || this.regexp_eatUncapturingGroup(state) || this.regexp_eatCapturingGroup(state);
   };
   pp$8.regexp_eatReverseSolidusAtomEscape = function(state) {
     var start = state.pos;
-    if (state.eat(92)) {
+    if (state.eat(
+      92
+      /* \ */
+    )) {
       if (this.regexp_eatAtomEscape(state)) {
         return true;
       }
@@ -3380,10 +3539,22 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatUncapturingGroup = function(state) {
     var start = state.pos;
-    if (state.eat(40)) {
-      if (state.eat(63) && state.eat(58)) {
+    if (state.eat(
+      40
+      /* ( */
+    )) {
+      if (state.eat(
+        63
+        /* ? */
+      ) && state.eat(
+        58
+        /* : */
+      )) {
         this.regexp_disjunction(state);
-        if (state.eat(41)) {
+        if (state.eat(
+          41
+          /* ) */
+        )) {
           return true;
         }
         state.raise("Unterminated group");
@@ -3393,14 +3564,20 @@ var __svelte__ = (() => {
     return false;
   };
   pp$8.regexp_eatCapturingGroup = function(state) {
-    if (state.eat(40)) {
+    if (state.eat(
+      40
+      /* ( */
+    )) {
       if (this.options.ecmaVersion >= 9) {
         this.regexp_groupSpecifier(state);
       } else if (state.current() === 63) {
         state.raise("Invalid group");
       }
       this.regexp_disjunction(state);
-      if (state.eat(41)) {
+      if (state.eat(
+        41
+        /* ) */
+      )) {
         state.numCapturingParens += 1;
         return true;
       }
@@ -3409,7 +3586,10 @@ var __svelte__ = (() => {
     return false;
   };
   pp$8.regexp_eatExtendedAtom = function(state) {
-    return state.eat(46) || this.regexp_eatReverseSolidusAtomEscape(state) || this.regexp_eatCharacterClass(state) || this.regexp_eatUncapturingGroup(state) || this.regexp_eatCapturingGroup(state) || this.regexp_eatInvalidBracedQuantifier(state) || this.regexp_eatExtendedPatternCharacter(state);
+    return state.eat(
+      46
+      /* . */
+    ) || this.regexp_eatReverseSolidusAtomEscape(state) || this.regexp_eatCharacterClass(state) || this.regexp_eatUncapturingGroup(state) || this.regexp_eatCapturingGroup(state) || this.regexp_eatInvalidBracedQuantifier(state) || this.regexp_eatExtendedPatternCharacter(state);
   };
   pp$8.regexp_eatInvalidBracedQuantifier = function(state) {
     if (this.regexp_eatBracedQuantifier(state, true)) {
@@ -3446,7 +3626,10 @@ var __svelte__ = (() => {
     return false;
   };
   pp$8.regexp_groupSpecifier = function(state) {
-    if (state.eat(63)) {
+    if (state.eat(
+      63
+      /* ? */
+    )) {
       if (this.regexp_eatGroupName(state)) {
         if (state.groupNames.indexOf(state.lastStringValue) !== -1) {
           state.raise("Duplicate capture group name");
@@ -3459,8 +3642,14 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatGroupName = function(state) {
     state.lastStringValue = "";
-    if (state.eat(60)) {
-      if (this.regexp_eatRegExpIdentifierName(state) && state.eat(62)) {
+    if (state.eat(
+      60
+      /* < */
+    )) {
+      if (this.regexp_eatRegExpIdentifierName(state) && state.eat(
+        62
+        /* > */
+      )) {
         return true;
       }
       state.raise("Invalid capture group name");
@@ -3544,7 +3733,10 @@ var __svelte__ = (() => {
     return false;
   };
   pp$8.regexp_eatKGroupName = function(state) {
-    if (state.eat(107)) {
+    if (state.eat(
+      107
+      /* k */
+    )) {
       if (this.regexp_eatGroupName(state)) {
         state.backReferenceNames.push(state.lastStringValue);
         return true;
@@ -3558,7 +3750,10 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatCControlLetter = function(state) {
     var start = state.pos;
-    if (state.eat(99)) {
+    if (state.eat(
+      99
+      /* c */
+    )) {
       if (this.regexp_eatControlLetter(state)) {
         return true;
       }
@@ -3620,12 +3815,21 @@ var __svelte__ = (() => {
       forceU = false;
     var start = state.pos;
     var switchU = forceU || state.switchU;
-    if (state.eat(117)) {
+    if (state.eat(
+      117
+      /* u */
+    )) {
       if (this.regexp_eatFixedHexDigits(state, 4)) {
         var lead = state.lastIntValue;
         if (switchU && lead >= 55296 && lead <= 56319) {
           var leadSurrogateEnd = state.pos;
-          if (state.eat(92) && state.eat(117) && this.regexp_eatFixedHexDigits(state, 4)) {
+          if (state.eat(
+            92
+            /* \ */
+          ) && state.eat(
+            117
+            /* u */
+          ) && this.regexp_eatFixedHexDigits(state, 4)) {
             var trail = state.lastIntValue;
             if (trail >= 56320 && trail <= 57343) {
               state.lastIntValue = (lead - 55296) * 1024 + (trail - 56320) + 65536;
@@ -3637,7 +3841,13 @@ var __svelte__ = (() => {
         }
         return true;
       }
-      if (switchU && state.eat(123) && this.regexp_eatHexDigits(state) && state.eat(125) && isValidUnicode(state.lastIntValue)) {
+      if (switchU && state.eat(
+        123
+        /* { */
+      ) && this.regexp_eatHexDigits(state) && state.eat(
+        125
+        /* } */
+      ) && isValidUnicode(state.lastIntValue)) {
         return true;
       }
       if (switchU) {
@@ -3655,7 +3865,10 @@ var __svelte__ = (() => {
       if (this.regexp_eatSyntaxCharacter(state)) {
         return true;
       }
-      if (state.eat(47)) {
+      if (state.eat(
+        47
+        /* / */
+      )) {
         state.lastIntValue = 47;
         return true;
       }
@@ -3691,7 +3904,13 @@ var __svelte__ = (() => {
     if (state.switchU && this.options.ecmaVersion >= 9 && (ch === 80 || ch === 112)) {
       state.lastIntValue = -1;
       state.advance();
-      if (state.eat(123) && this.regexp_eatUnicodePropertyValueExpression(state) && state.eat(125)) {
+      if (state.eat(
+        123
+        /* { */
+      ) && this.regexp_eatUnicodePropertyValueExpression(state) && state.eat(
+        125
+        /* } */
+      )) {
         return true;
       }
       state.raise("Invalid property name");
@@ -3703,7 +3922,10 @@ var __svelte__ = (() => {
   }
   pp$8.regexp_eatUnicodePropertyValueExpression = function(state) {
     var start = state.pos;
-    if (this.regexp_eatUnicodePropertyName(state) && state.eat(61)) {
+    if (this.regexp_eatUnicodePropertyName(state) && state.eat(
+      61
+      /* = */
+    )) {
       var name = state.lastStringValue;
       if (this.regexp_eatUnicodePropertyValue(state)) {
         var value2 = state.lastStringValue;
@@ -3760,10 +3982,19 @@ var __svelte__ = (() => {
     return this.regexp_eatUnicodePropertyValue(state);
   };
   pp$8.regexp_eatCharacterClass = function(state) {
-    if (state.eat(91)) {
-      state.eat(94);
+    if (state.eat(
+      91
+      /* [ */
+    )) {
+      state.eat(
+        94
+        /* ^ */
+      );
       this.regexp_classRanges(state);
-      if (state.eat(93)) {
+      if (state.eat(
+        93
+        /* ] */
+      )) {
         return true;
       }
       state.raise("Unterminated character class");
@@ -3773,7 +4004,10 @@ var __svelte__ = (() => {
   pp$8.regexp_classRanges = function(state) {
     while (this.regexp_eatClassAtom(state)) {
       var left = state.lastIntValue;
-      if (state.eat(45) && this.regexp_eatClassAtom(state)) {
+      if (state.eat(
+        45
+        /* - */
+      ) && this.regexp_eatClassAtom(state)) {
         var right = state.lastIntValue;
         if (state.switchU && (left === -1 || right === -1)) {
           state.raise("Invalid character class");
@@ -3786,7 +4020,10 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatClassAtom = function(state) {
     var start = state.pos;
-    if (state.eat(92)) {
+    if (state.eat(
+      92
+      /* \ */
+    )) {
       if (this.regexp_eatClassEscape(state)) {
         return true;
       }
@@ -3809,15 +4046,24 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatClassEscape = function(state) {
     var start = state.pos;
-    if (state.eat(98)) {
+    if (state.eat(
+      98
+      /* b */
+    )) {
       state.lastIntValue = 8;
       return true;
     }
-    if (state.switchU && state.eat(45)) {
+    if (state.switchU && state.eat(
+      45
+      /* - */
+    )) {
       state.lastIntValue = 45;
       return true;
     }
-    if (!state.switchU && state.eat(99)) {
+    if (!state.switchU && state.eat(
+      99
+      /* c */
+    )) {
       if (this.regexp_eatClassControlLetter(state)) {
         return true;
       }
@@ -3836,7 +4082,10 @@ var __svelte__ = (() => {
   };
   pp$8.regexp_eatHexEscapeSequence = function(state) {
     var start = state.pos;
-    if (state.eat(120)) {
+    if (state.eat(
+      120
+      /* x */
+    )) {
       if (this.regexp_eatFixedHexDigits(state, 2)) {
         return true;
       }
@@ -4021,7 +4270,14 @@ var __svelte__ = (() => {
       }
     }
     if (this.options.onComment) {
-      this.options.onComment(true, this.input.slice(start + 2, end), start, this.pos, startLoc, this.curPosition());
+      this.options.onComment(
+        true,
+        this.input.slice(start + 2, end),
+        start,
+        this.pos,
+        startLoc,
+        this.curPosition()
+      );
     }
   };
   pp$9.skipLineComment = function(startSkip) {
@@ -4032,7 +4288,14 @@ var __svelte__ = (() => {
       ch = this.input.charCodeAt(++this.pos);
     }
     if (this.options.onComment) {
-      this.options.onComment(false, this.input.slice(start + startSkip, this.pos), start, this.pos, startLoc, this.curPosition());
+      this.options.onComment(
+        false,
+        this.input.slice(start + startSkip, this.pos),
+        start,
+        this.pos,
+        startLoc,
+        this.curPosition()
+      );
     }
   };
   pp$9.skipSpace = function() {
@@ -4645,11 +4908,17 @@ var __svelte__ = (() => {
       case 56:
       case 57:
         if (this.strict) {
-          this.invalidStringToken(this.pos - 1, "Invalid escape sequence");
+          this.invalidStringToken(
+            this.pos - 1,
+            "Invalid escape sequence"
+          );
         }
         if (inTemplate) {
           var codePos = this.pos - 1;
-          this.invalidStringToken(codePos, "Invalid escape sequence in template string");
+          this.invalidStringToken(
+            codePos,
+            "Invalid escape sequence in template string"
+          );
           return null;
         }
       default:
@@ -4663,7 +4932,10 @@ var __svelte__ = (() => {
           this.pos += octalStr.length - 1;
           ch = this.input.charCodeAt(this.pos);
           if ((octalStr !== "0" || ch === 56 || ch === 57) && (this.strict || inTemplate)) {
-            this.invalidStringToken(this.pos - 1 - octalStr.length, inTemplate ? "Octal literal in template string" : "Octal literal in strict mode");
+            this.invalidStringToken(
+              this.pos - 1 - octalStr.length,
+              inTemplate ? "Octal literal in template string" : "Octal literal in strict mode"
+            );
           }
           return String.fromCharCode(octal);
         }
@@ -5325,6 +5597,13 @@ var __svelte__ = (() => {
         replace: (node2) => this.replacement = node2
       };
     }
+    /**
+     *
+     * @param {any} parent
+     * @param {string} prop
+     * @param {number} index
+     * @param {BaseNode} node
+     */
     replace(parent, prop, index, node2) {
       if (parent) {
         if (index !== null) {
@@ -5334,6 +5613,12 @@ var __svelte__ = (() => {
         }
       }
     }
+    /**
+     *
+     * @param {any} parent
+     * @param {string} prop
+     * @param {number} index
+     */
     remove(parent, prop, index) {
       if (parent) {
         if (index !== null) {
@@ -5345,11 +5630,24 @@ var __svelte__ = (() => {
     }
   };
   var SyncWalker = class extends WalkerBase {
+    /**
+     *
+     * @param {SyncHandler} enter
+     * @param {SyncHandler} leave
+     */
     constructor(enter, leave) {
       super();
       this.enter = enter;
       this.leave = leave;
     }
+    /**
+     *
+     * @param {BaseNode} node
+     * @param {BaseNode} parent
+     * @param {string} [prop]
+     * @param {number} [index]
+     * @returns {BaseNode}
+     */
     visit(node2, parent, prop, index) {
       if (node2) {
         if (this.enter) {
@@ -5423,6 +5721,13 @@ var __svelte__ = (() => {
   var id = Math.round(Math.random() * 1e20).toString(36);
   var re = new RegExp(`_${id}_(?:(\\d+)|(AT)|(HASH))_(\\w+)?`, "g");
   var get_comment_handlers = (comments, raw) => ({
+    // pass to acorn options
+    /**
+     * @param {boolean} block
+     * @param {string} value
+     * @param {number} start
+     * @param {number} end
+     */
     onComment: (block, value2, start, end) => {
       if (block && /\n/.test(value2)) {
         let a = start;
@@ -5436,6 +5741,8 @@ var __svelte__ = (() => {
       }
       comments.push({ type: block ? "Block" : "Line", value: value2, start, end });
     },
+    // pass to estree-walker options
+    /** @param {NodeWithLocation} node */
     enter(node2) {
       let comment;
       while (comments[0] && comments[0].start < node2.start) {
@@ -5452,6 +5759,7 @@ var __svelte__ = (() => {
         (node2.leadingComments || (node2.leadingComments = [])).push(comment);
       }
     },
+    /** @param {NodeWithLocation} node */
     leave(node2) {
       if (comments[0]) {
         const slice2 = raw.slice(node2.end, comments[0].start);
@@ -5497,6 +5805,10 @@ var __svelte__ = (() => {
     const references = [];
     let current_scope = scope2;
     walk(expression2, {
+      /**
+       * @param {Node} node
+       * @param {any} parent
+       */
       enter(node2, parent) {
         switch (node2.type) {
           case "Identifier":
@@ -5551,6 +5863,7 @@ var __svelte__ = (() => {
             break;
         }
       },
+      /** @param {Node} node */
       leave(node2) {
         if (map.has(node2)) {
           current_scope = current_scope.parent;
@@ -5581,6 +5894,7 @@ var __svelte__ = (() => {
       this.initialised_declarations = /* @__PURE__ */ new Set();
       this.references = /* @__PURE__ */ new Set();
     }
+    /** @param {import('estree').VariableDeclaration | import('estree').ClassDeclaration} node */
     add_declaration(node2) {
       if (node2.type === "VariableDeclaration") {
         if (node2.kind === "var" && this.block && this.parent) {
@@ -5599,11 +5913,19 @@ var __svelte__ = (() => {
         this.declarations.set(node2.id.name, node2);
       }
     }
+    /**
+     * @param {string} name
+     * @returns {Scope | null}
+     */
     find_owner(name) {
       if (this.declarations.has(name))
         return this;
       return this.parent && this.parent.find_owner(name);
     }
+    /**
+     * @param {string} name
+     * @returns {boolean}
+     */
     has(name) {
       return this.declarations.has(name) || !!this.parent && this.parent.has(name);
     }
@@ -5619,9 +5941,13 @@ var __svelte__ = (() => {
       case "MemberExpression":
         let object = param;
         while (object.type === "MemberExpression") {
-          object = object.object;
+          object = /** @type {any} */
+          object.object;
         }
-        nodes.push(object);
+        nodes.push(
+          /** @type {any} */
+          object
+        );
         break;
       case "ObjectPattern":
         const handle_prop = (prop) => {
@@ -5661,8 +5987,10 @@ var __svelte__ = (() => {
     }
     const result = handler(node2, state);
     if (node2.leadingComments) {
-      result.unshift(c(node2.leadingComments.map((comment) => comment.type === "Block" ? `/*${comment.value}*/${comment.has_trailing_newline ? `
-${state.indent}` : ` `}` : `//${comment.value}${comment.has_trailing_newline ? `
+      result.unshift(c(node2.leadingComments.map((comment) => comment.type === "Block" ? `/*${comment.value}*/${/** @type {any} */
+      comment.has_trailing_newline ? `
+${state.indent}` : ` `}` : `//${comment.value}${/** @type {any} */
+      comment.has_trailing_newline ? `
 ${state.indent}` : ` `}`).join(``)));
     }
     if (node2.trailingComments) {
@@ -5742,13 +6070,22 @@ ${state.indent}` : ` `}`).join(``)));
     if (precedence !== 13 && precedence !== 14) {
       return false;
     }
-    if (node2.operator === "**" && parent.operator === "**") {
+    if (
+      /** @type {BinaryExpression} */
+      node2.operator === "**" && parent.operator === "**"
+    ) {
       return !is_right;
     }
     if (is_right) {
-      return OPERATOR_PRECEDENCE[node2.operator] <= OPERATOR_PRECEDENCE[parent.operator];
+      return OPERATOR_PRECEDENCE[
+        /** @type {BinaryExpression} */
+        node2.operator
+      ] <= OPERATOR_PRECEDENCE[parent.operator];
     }
-    return OPERATOR_PRECEDENCE[node2.operator] < OPERATOR_PRECEDENCE[parent.operator];
+    return OPERATOR_PRECEDENCE[
+      /** @type {BinaryExpression} */
+      node2.operator
+    ] < OPERATOR_PRECEDENCE[parent.operator];
   }
   function has_call_expression(node2) {
     while (node2) {
@@ -5824,10 +6161,12 @@ ${state.indent}` : ` `;
     for (let i = 0; i < body.length; i += 1) {
       const needs_padding = has_newline(body[i]);
       if (i > 0) {
-        chunks.push(c(needs_padding || needed_padding ? `
+        chunks.push(
+          c(needs_padding || needed_padding ? `
 
 ${state.indent}` : `
-${state.indent}`));
+${state.indent}`)
+        );
       }
       push_array(chunks, body[i]);
       needed_padding = needs_padding;
@@ -6274,11 +6613,17 @@ ${state.indent}`));
       const chunks = [c("`")];
       const { quasis, expressions } = node2;
       for (let i = 0; i < expressions.length; i++) {
-        chunks.push(c(quasis[i].value.raw), c("${"));
+        chunks.push(
+          c(quasis[i].value.raw),
+          c("${")
+        );
         push_array(chunks, handle(expressions[i], state));
         chunks.push(c("}"));
       }
-      chunks.push(c(quasis[quasis.length - 1].value.raw), c("`"));
+      chunks.push(
+        c(quasis[quasis.length - 1].value.raw),
+        c("`")
+      );
       return chunks;
     },
     TaggedTemplateExpression(node2, state) {
@@ -6523,7 +6868,10 @@ ${state.indent}: `));
       } else {
         push_array(chunks, handle(node2.callee, state));
       }
-      if (node2.optional) {
+      if (
+        /** @type {SimpleCallExpression} */
+        node2.optional
+      ) {
         chunks.push(c("?."));
       }
       const args = node2.arguments.map((arg) => handle(arg, state));
@@ -6594,6 +6942,8 @@ ${state.indent})`));
     Literal(node2, state) {
       if (typeof node2.value === "string") {
         return [
+          // TODO do we need to handle weird unicode characters somehow?
+          // str.replace(/\\u(\d{4})/g, (m, n) => String.fromCharCode(+n))
           c((node2.raw || JSON.stringify(node2.value)).replace(re, (_m, _i, at2, hash2, name) => {
             if (at2)
               return "@" + name;
@@ -6684,9 +7034,12 @@ ${state.indent})`));
       }, opts);
     }
     const {
-      getName = (x2) => {
-        throw new Error(`Unhandled sigil @${x2}`);
-      }
+      getName = (
+        /** @param {string} x */
+        (x2) => {
+          throw new Error(`Unhandled sigil @${x2}`);
+        }
+      )
     } = opts;
     let { map: scope_map, scope: scope2 } = analyze(node2);
     const deconflicted = /* @__PURE__ */ new WeakMap();
@@ -6709,6 +7062,7 @@ ${state.indent})`));
         current_line.push([
           current_column,
           0,
+          // source index is always zero
           chunk.loc.start.line - 1,
           chunk.loc.start.column
         ]);
@@ -6726,6 +7080,7 @@ ${state.indent})`));
         current_line.push([
           current_column,
           0,
+          // source index is always zero
           chunk.loc.end.line - 1,
           chunk.loc.end.column
         ]);
@@ -6734,6 +7089,7 @@ ${state.indent})`));
     mappings.push(current_line);
     const map = {
       version: 3,
+      /** @type {string[]} */
       names: [],
       sources: [opts.sourceMapSource || null],
       sourcesContent: [opts.sourceMapContent || null],
@@ -6767,7 +7123,10 @@ ${state.indent})`));
     for (let i = 1; i < strings.length; i += 1) {
       str += `_${id}_${i - 1}_${strings[i]}`;
     }
-    return str.replace(/([@#])(\w+)/g, (_m, sigil, name) => `_${id}_${sigils[sigil]}_${name}`);
+    return str.replace(
+      /([@#])(\w+)/g,
+      (_m, sigil, name) => `_${id}_${sigils[sigil]}_${name}`
+    );
   };
   var flatten_body = (array, target) => {
     for (let i = 0; i < array.length; i += 1) {
@@ -6843,11 +7202,15 @@ ${state.indent})`));
   };
   var inject = (raw, node2, values, comments) => {
     comments.forEach((comment) => {
-      comment.value = comment.value.replace(re, (m, i) => +i in values ? values[+i] : m);
+      comment.value = comment.value.replace(
+        re,
+        (m, i) => +i in values ? values[+i] : m
+      );
     });
     const { enter, leave } = get_comment_handlers(comments, raw);
     return walk(node2, {
       enter,
+      /** @param {any} node */
       leave(node3) {
         if (node3.type === "Identifier") {
           re.lastIndex = 0;
@@ -6881,17 +7244,30 @@ ${state.indent})`));
         if (node3.type === "Literal") {
           if (typeof node3.value === "string") {
             re.lastIndex = 0;
-            const new_value = node3.value.replace(re, (m, i) => +i in values ? values[+i] : m);
+            const new_value = (
+              /** @type {string} */
+              node3.value.replace(
+                re,
+                (m, i) => +i in values ? values[+i] : m
+              )
+            );
             const has_changed = new_value !== node3.value;
             node3.value = new_value;
             if (has_changed && node3.raw) {
-              node3.raw = `${node3.raw[0]}${JSON.stringify(node3.value).slice(1, -1)}${node3.raw[node3.raw.length - 1]}`;
+              node3.raw = `${node3.raw[0]}${JSON.stringify(node3.value).slice(
+                1,
+                -1
+              )}${node3.raw[node3.raw.length - 1]}`;
             }
           }
         }
         if (node3.type === "TemplateElement") {
           re.lastIndex = 0;
-          node3.value.raw = node3.value.raw.replace(re, (m, i) => +i in values ? values[+i] : m);
+          node3.value.raw = /** @type {string} */
+          node3.value.raw.replace(
+            re,
+            (m, i) => +i in values ? values[+i] : m
+          );
         }
         if (node3.type === "Program" || node3.type === "BlockStatement") {
           node3.body = flatten_body(node3.body, []);
@@ -6924,7 +7300,10 @@ ${state.indent})`));
     const str = join$1(strings);
     const comments = [];
     try {
-      let ast = parse3(str, acorn_opts(comments, str));
+      let ast = (
+        /** @type {any} */
+        parse3(str, acorn_opts(comments, str))
+      );
       ast = inject(str, ast, values, comments);
       return ast.body;
     } catch (err) {
@@ -6935,12 +7314,16 @@ ${state.indent})`));
     const str = join$1(strings);
     const comments = [];
     try {
-      let expression2 = parseExpressionAt2(str, 0, acorn_opts(comments, str));
+      let expression2 = (
+        /** @type {Expression & { start: Number, end: number }} */
+        parseExpressionAt2(str, 0, acorn_opts(comments, str))
+      );
       const match = /\S+/.exec(str.slice(expression2.end));
       if (match) {
         throw new Error(`Unexpected token '${match[0]}'`);
       }
-      expression2 = inject(str, expression2, values, comments);
+      expression2 = /** @type {Expression & { start: Number, end: number }} */
+      inject(str, expression2, values, comments);
       return expression2;
     } catch (err) {
       handle_error(str, err);
@@ -6950,7 +7333,10 @@ ${state.indent})`));
     const str = `{${join$1(strings)}}`;
     const comments = [];
     try {
-      let expression2 = parseExpressionAt2(str, 0, acorn_opts(comments, str));
+      let expression2 = (
+        /** @type {any} */
+        parseExpressionAt2(str, 0, acorn_opts(comments, str))
+      );
       expression2 = inject(str, expression2, values, comments);
       return expression2.properties[0];
     } catch (err) {
@@ -6973,14 +7359,20 @@ ${str}`);
   var parse$1 = (source, opts) => {
     const comments = [];
     const { onComment, enter, leave } = get_comment_handlers(comments, source);
-    const ast = parse3(source, { onComment, ...opts });
+    const ast = (
+      /** @type {any} */
+      parse3(source, { onComment, ...opts })
+    );
     walk(ast, { enter, leave });
     return ast;
   };
   var parseExpressionAt$1 = (source, index, opts) => {
     const comments = [];
     const { onComment, enter, leave } = get_comment_handlers(comments, source);
-    const ast = parseExpressionAt2(source, index, { onComment, ...opts });
+    const ast = (
+      /** @type {any} */
+      parseExpressionAt2(source, index, { onComment, ...opts })
+    );
     walk(ast, { enter, leave });
     return ast;
   };
@@ -7068,30 +7460,55 @@ ${str}`);
   };
   var TYPE = {
     EOF: 0,
+    // <EOF-token>
     Ident: 1,
+    // <ident-token>
     Function: 2,
+    // <function-token>
     AtKeyword: 3,
+    // <at-keyword-token>
     Hash: 4,
+    // <hash-token>
     String: 5,
+    // <string-token>
     BadString: 6,
+    // <bad-string-token>
     Url: 7,
+    // <url-token>
     BadUrl: 8,
+    // <bad-url-token>
     Delim: 9,
+    // <delim-token>
     Number: 10,
+    // <number-token>
     Percentage: 11,
+    // <percentage-token>
     Dimension: 12,
+    // <dimension-token>
     WhiteSpace: 13,
+    // <whitespace-token>
     CDO: 14,
+    // <CDO-token>
     CDC: 15,
+    // <CDC-token>
     Colon: 16,
+    // <colon-token>     :
     Semicolon: 17,
+    // <semicolon-token> ;
     Comma: 18,
+    // <comma-token>     ,
     LeftSquareBracket: 19,
+    // <[-token>
     RightSquareBracket: 20,
+    // <]-token>
     LeftParenthesis: 21,
+    // <(-token>
     RightParenthesis: 22,
+    // <)-token>
     LeftCurlyBracket: 23,
+    // <{-token>
     RightCurlyBracket: 24,
+    // <}-token>
     Comment: 25
   };
   var NAME = Object.keys(TYPE).reduce(function(result, key) {
@@ -7107,7 +7524,9 @@ ${str}`);
     return code >= 48 && code <= 57;
   }
   function isHexDigit$1(code) {
-    return isDigit(code) || code >= 65 && code <= 70 || code >= 97 && code <= 102;
+    return isDigit(code) || // 0 .. 9
+    code >= 65 && code <= 70 || // A .. F
+    code >= 97 && code <= 102;
   }
   function isUppercaseLetter(code) {
     return code >= 65 && code <= 90;
@@ -7334,7 +7753,12 @@ ${str}`);
       code = source.charCodeAt(offset2 += 2);
       offset2 = findDecimalNumberEnd(source, offset2);
     }
-    if (cmpChar(source, offset2, 101)) {
+    if (cmpChar(
+      source,
+      offset2,
+      101
+      /* e */
+    )) {
       var sign = 0;
       code = source.charCodeAt(offset2 + 1);
       if (code === 45 || code === 43) {
@@ -7409,7 +7833,12 @@ ${str}`);
     lookupValue: function(offset2, referenceStr) {
       offset2 += this.tokenIndex;
       if (offset2 < this.tokenCount) {
-        return cmpStr$1(this.source, this.offsetAndType[offset2 - 1] & OFFSET_MASK, this.offsetAndType[offset2] & OFFSET_MASK, referenceStr);
+        return cmpStr$1(
+          this.source,
+          this.offsetAndType[offset2 - 1] & OFFSET_MASK,
+          this.offsetAndType[offset2] & OFFSET_MASK,
+          referenceStr
+        );
       }
       return false;
     },
@@ -7422,6 +7851,7 @@ ${str}`);
       }
       return this.firstCharOffset;
     },
+    // TODO: -> skipUntilBalanced
     getRawLength: function(startToken, mode) {
       var cursor = startToken;
       var balanceEnd2;
@@ -8608,7 +9038,11 @@ ${str}`);
       },
       getLocation: function(start, end) {
         if (this.needPositions) {
-          return this.locationMap.getLocationRange(start, end, this.filename);
+          return this.locationMap.getLocationRange(
+            start,
+            end,
+            this.filename
+          );
         }
         return null;
       },
@@ -8616,13 +9050,23 @@ ${str}`);
         if (this.needPositions) {
           var head = this.getFirstListNode(list2);
           var tail = this.getLastListNode(list2);
-          return this.locationMap.getLocationRange(head !== null ? head.loc.start.offset - this.locationMap.startOffset : this.scanner.tokenStart, tail !== null ? tail.loc.end.offset - this.locationMap.startOffset : this.scanner.tokenStart, this.filename);
+          return this.locationMap.getLocationRange(
+            head !== null ? head.loc.start.offset - this.locationMap.startOffset : this.scanner.tokenStart,
+            tail !== null ? tail.loc.end.offset - this.locationMap.startOffset : this.scanner.tokenStart,
+            this.filename
+          );
         }
         return null;
       },
       error: function(message, offset2) {
         var location = typeof offset2 !== "undefined" && offset2 < this.scanner.source.length ? this.locationMap.getLocation(offset2) : this.scanner.eof ? this.locationMap.getLocation(findWhiteSpaceStart$1(this.scanner.source, this.scanner.source.length - 1)) : this.locationMap.getLocation(this.scanner.tokenStart);
-        throw new _SyntaxError(message || "Unexpected input", this.scanner.source, location.offset, location.line, location.column);
+        throw new _SyntaxError(
+          message || "Unexpected input",
+          this.scanner.source,
+          location.offset,
+          location.line,
+          location.column
+        );
       }
     };
     config = processConfig(config || {});
@@ -8635,7 +9079,12 @@ ${str}`);
       var onComment = options.onComment;
       var ast;
       tokenizer2(source, parser2.scanner);
-      parser2.locationMap.setSource(source, options.offset, options.line, options.column);
+      parser2.locationMap.setSource(
+        source,
+        options.offset,
+        options.line,
+        options.column
+      );
       parser2.filename = options.filename || "<unknown>";
       parser2.needPositions = Boolean(options.positions);
       parser2.onParseError = typeof options.onParseError === "function" ? options.onParseError : noop;
@@ -8793,7 +9242,9 @@ ${str}`);
     getNode
   };
   var expression = function() {
-    return this.createSingleNodeList(this.Raw(this.scanner.tokenIndex, null, false));
+    return this.createSingleNodeList(
+      this.Raw(this.scanner.tokenIndex, null, false)
+    );
   };
   var TYPE$7 = tokenizer2.TYPE;
   var WhiteSpace = TYPE$7.WhiteSpace;
@@ -8835,7 +9286,9 @@ ${str}`);
     parse: function(startToken, mode, excludeWhiteSpace) {
       var startOffset = this.scanner.getTokenStart(startToken);
       var endOffset;
-      this.scanner.skip(this.scanner.getRawLength(startToken, mode || balanceEnd));
+      this.scanner.skip(
+        this.scanner.getRawLength(startToken, mode || balanceEnd)
+      );
       if (excludeWhiteSpace && this.scanner.tokenStart > startOffset) {
         endOffset = getOffsetExcludeWS.call(this);
       } else {
@@ -8939,7 +9392,9 @@ ${str}`);
   var media = {
     parse: {
       prelude: function() {
-        return this.createSingleNodeList(this.MediaQueryList());
+        return this.createSingleNodeList(
+          this.MediaQueryList()
+        );
       },
       block: function() {
         return this.Block(false);
@@ -8949,7 +9404,9 @@ ${str}`);
   var page = {
     parse: {
       prelude: function() {
-        return this.createSingleNodeList(this.SelectorList());
+        return this.createSingleNodeList(
+          this.SelectorList()
+        );
       },
       block: function() {
         return this.Block(true);
@@ -8964,12 +9421,16 @@ ${str}`);
   var COLON$1 = TYPE$a.Colon;
   var LEFTPARENTHESIS$2 = TYPE$a.LeftParenthesis;
   function consumeRaw() {
-    return this.createSingleNodeList(this.Raw(this.scanner.tokenIndex, null, false));
+    return this.createSingleNodeList(
+      this.Raw(this.scanner.tokenIndex, null, false)
+    );
   }
   function parentheses() {
     this.scanner.skipSC();
     if (this.scanner.tokenType === IDENT$4 && this.lookupNonWSType(1) === COLON$1) {
-      return this.createSingleNodeList(this.Declaration());
+      return this.createSingleNodeList(
+        this.Declaration()
+      );
     }
     return readSequence2.call(this);
   }
@@ -9030,22 +9491,30 @@ ${str}`);
   };
   var dir = {
     parse: function() {
-      return this.createSingleNodeList(this.Identifier());
+      return this.createSingleNodeList(
+        this.Identifier()
+      );
     }
   };
   var has$1 = {
     parse: function() {
-      return this.createSingleNodeList(this.SelectorList());
+      return this.createSingleNodeList(
+        this.SelectorList()
+      );
     }
   };
   var lang = {
     parse: function() {
-      return this.createSingleNodeList(this.Identifier());
+      return this.createSingleNodeList(
+        this.Identifier()
+      );
     }
   };
   var selectorList = {
     parse: function selectorList2() {
-      return this.createSingleNodeList(this.SelectorList());
+      return this.createSingleNodeList(
+        this.SelectorList()
+      );
     }
   };
   var matches = selectorList;
@@ -9053,7 +9522,9 @@ ${str}`);
   var ALLOW_OF_CLAUSE = true;
   var nthWithOfClause = {
     parse: function nthWithOfClause2() {
-      return this.createSingleNodeList(this.Nth(ALLOW_OF_CLAUSE));
+      return this.createSingleNodeList(
+        this.Nth(ALLOW_OF_CLAUSE)
+      );
     }
   };
   var nthChild = nthWithOfClause;
@@ -9061,14 +9532,18 @@ ${str}`);
   var DISALLOW_OF_CLAUSE = false;
   var nth = {
     parse: function nth2() {
-      return this.createSingleNodeList(this.Nth(DISALLOW_OF_CLAUSE));
+      return this.createSingleNodeList(
+        this.Nth(DISALLOW_OF_CLAUSE)
+      );
     }
   };
   var nthLastOfType = nth;
   var nthOfType = nth;
   var slotted = {
     parse: function compoundSelector() {
-      return this.createSingleNodeList(this.Selector());
+      return this.createSingleNodeList(
+        this.Selector()
+      );
     }
   };
   var pseudo = {
@@ -9270,7 +9745,19 @@ ${str}`);
       var a = node2.a !== null && node2.a !== void 0;
       var b2 = node2.b !== null && node2.b !== void 0;
       if (a) {
-        this.chunk(node2.a === "+1" ? "+n" : node2.a === "1" ? "n" : node2.a === "-1" ? "-n" : node2.a + "n");
+        this.chunk(
+          node2.a === "+1" ? "+n" : (
+            // eslint-disable-line operator-linebreak, indent
+            node2.a === "1" ? "n" : (
+              // eslint-disable-line operator-linebreak, indent
+              node2.a === "-1" ? "-n" : (
+                // eslint-disable-line operator-linebreak, indent
+                node2.a + "n"
+              )
+            )
+          )
+          // eslint-disable-line operator-linebreak, indent
+        );
         if (b2) {
           b2 = String(node2.b);
           if (b2.charAt(0) === "-" || b2.charAt(0) === "+") {
@@ -9455,7 +9942,12 @@ ${str}`);
   function getOperator() {
     var start = this.scanner.tokenStart;
     var code = this.scanner.source.charCodeAt(start);
-    if (code !== EQUALSSIGN && code !== TILDE$1 && code !== CIRCUMFLEXACCENT && code !== DOLLARSIGN && code !== ASTERISK$2 && code !== VERTICALLINE$1) {
+    if (code !== EQUALSSIGN && // =
+    code !== TILDE$1 && // ~=
+    code !== CIRCUMFLEXACCENT && // ^=
+    code !== DOLLARSIGN && // $=
+    code !== ASTERISK$2 && // *=
+    code !== VERTICALLINE$1) {
       this.error("Attribute selector (=, ~=, ^=, $=, *=, |=) is expected");
     }
     this.scanner.next();
@@ -10423,7 +10915,9 @@ ${str}`);
           this.scanner.skipSC();
         } else {
           children = this.createList();
-          children.push(this.Raw(this.scanner.tokenIndex, null, false));
+          children.push(
+            this.Raw(this.scanner.tokenIndex, null, false)
+          );
         }
         this.eat(RIGHTPARENTHESIS$3);
       } else {
@@ -10474,7 +10968,9 @@ ${str}`);
           this.scanner.skipSC();
         } else {
           children = this.createList();
-          children.push(this.Raw(this.scanner.tokenIndex, null, false));
+          children.push(
+            this.Raw(this.scanner.tokenIndex, null, false)
+          );
         }
         this.eat(RIGHTPARENTHESIS$4);
       } else {
@@ -10790,7 +11286,10 @@ ${str}`);
         return -1;
       }
       if (!isHexDigit$3(code)) {
-        this.error(allowDash && len !== 0 ? "HyphenMinus" + (len < 6 ? " or hex digit" : "") + " is expected" : len < 6 ? "Hex digit is expected" : "Unexpected input", pos);
+        this.error(
+          allowDash && len !== 0 ? "HyphenMinus" + (len < 6 ? " or hex digit" : "") + " is expected" : len < 6 ? "Hex digit is expected" : "Unexpected input",
+          pos
+        );
       }
       if (++len > 6) {
         this.error("Too many hex digits", pos);
@@ -14366,7 +14865,7 @@ ${this.frame}`;
   function is_head(node2) {
     return node2 && node2.type === "MemberExpression" && node2.object.name === "@_document" && node2.property.name === "head";
   }
-  var Block$1 = class {
+  var Block$1 = class _Block$1 {
     constructor(options) {
       this.dependencies = /* @__PURE__ */ new Set();
       this.binding_group_initialised = /* @__PURE__ */ new Set();
@@ -14487,7 +14986,7 @@ ${this.frame}`;
       return this.aliases.get(name);
     }
     child(options) {
-      return new Block$1(Object.assign({}, this, { key: null }, options, { parent: this }));
+      return new _Block$1(Object.assign({}, this, { key: null }, options, { parent: this }));
     }
     get_contents(key) {
       const { dev } = this.renderer.options;
@@ -15576,6 +16075,7 @@ ${this.frame}`;
         return is_dynamic(variable);
       });
     }
+    // TODO move this into a render-dom wrapper?
     manipulate(block, ctx) {
       if (this.manipulated)
         return this.manipulated;
@@ -16438,7 +16938,9 @@ ${this.frame}`;
   var a11y_required_attributes = {
     a: ["href"],
     area: ["alt", "aria-label", "aria-labelledby"],
+    // html-has-lang
     html: ["lang"],
+    // iframe-has-title
     iframe: ["title"],
     img: ["alt"],
     object: ["title", "aria-label", "aria-labelledby"]
@@ -16448,7 +16950,9 @@ ${this.frame}`;
     "marquee"
   ]);
   var a11y_required_content = /* @__PURE__ */ new Set([
+    // anchor-has-content
     "a",
+    // heading-has-content
     "h1",
     "h2",
     "h3",
@@ -16555,7 +17059,7 @@ ${this.frame}`;
     }
     return parent_element.namespace;
   }
-  var Element = class extends Node$1 {
+  var Element = class _Element extends Node$1 {
     constructor(component, parent, scope2, info) {
       super(component, parent, scope2, info);
       this.attributes = [];
@@ -16824,7 +17328,7 @@ ${this.frame}`;
         }
       }
       if (this.name === "label") {
-        const has_input_child = this.children.some((i) => i instanceof Element && a11y_labelable.has(i.name));
+        const has_input_child = this.children.some((i) => i instanceof _Element && a11y_labelable.has(i.name));
         if (!attribute_map.has("for") && !has_input_child) {
           component.warn(this, compiler_warnings.a11y_label_has_associated_control);
         }
@@ -17963,6 +18467,7 @@ ${this.frame}`;
         comment: create_debugging_comment(this.node, this.renderer.component),
         name: renderer.component.get_unique_name("create_each_block"),
         type: "each",
+        // @ts-ignore todo: probably error
         key: node2.key,
         bindings: new Map(block.bindings)
       });
@@ -17988,6 +18493,7 @@ ${this.frame}`;
         each_block_value,
         get_each_context: renderer.component.get_unique_name(`get_${this.var.name}_context`),
         iterations,
+        // optimisation for array literal
         fixed_length,
         data_length: fixed_length === null ? x`${each_block_value}.${length2}` : fixed_length,
         view_length: fixed_length === null ? x`${iterations}.length` : fixed_length
@@ -18679,7 +19185,8 @@ ${this.frame}`;
   }
   function is_indirectly_bound_value(attribute) {
     const element = attribute.parent;
-    return attribute.name === "value" && (element.node.name === "option" || element.node.name === "input" && element.node.bindings.some((binding) => /checked|group/.test(binding.name)));
+    return attribute.name === "value" && (element.node.name === "option" || // TODO check it's actually bound
+    element.node.name === "input" && element.node.bindings.some((binding) => /checked|group/.test(binding.name)));
   }
   var StyleAttributeWrapper = class extends AttributeWrapper {
     render(block) {
@@ -19311,6 +19818,7 @@ ${this.frame}`;
       event_names: ["elementresize"],
       filter: (_node, name) => dimensions.test(name)
     },
+    // media events
     {
       event_names: ["timeupdate"],
       filter: (node2, name) => node2.is_media_node() && (name === "currentTime" || name === "played" || name === "ended")
@@ -19351,13 +19859,14 @@ ${this.frame}`;
       event_names: ["resize"],
       filter: (node2, name) => node2.is_media_node() && (name === "videoHeight" || name === "videoWidth")
     },
+    // details event
     {
       event_names: ["toggle"],
       filter: (node2, _name) => node2.name === "details"
     }
   ];
   var CHILD_DYNAMIC_ELEMENT_BLOCK = "child_dynamic_element";
-  var ElementWrapper = class extends Wrapper {
+  var ElementWrapper = class _ElementWrapper extends Wrapper {
     constructor(renderer, block, parent, node2, strip_whitespace, next_sibling) {
       super(renderer, block, parent, node2);
       this.child_dynamic_element_block = null;
@@ -19369,7 +19878,7 @@ ${this.frame}`;
           type: CHILD_DYNAMIC_ELEMENT_BLOCK
         });
         renderer.blocks.push(this.child_dynamic_element_block);
-        this.child_dynamic_element = new ElementWrapper(renderer, this.child_dynamic_element_block, parent, node2, strip_whitespace, next_sibling);
+        this.child_dynamic_element = new _ElementWrapper(renderer, this.child_dynamic_element_block, parent, node2, strip_whitespace, next_sibling);
       }
       this.var = {
         type: "Identifier",
@@ -20324,6 +20833,8 @@ ${this.frame}`;
 			`);
       }
     }
+    // if any of the siblings have outros, we need to keep references to the blocks
+    // (TODO does this only apply to bidi transitions?)
     render_compound_with_outros(block, parent_node, _parent_nodes, dynamic, { name, anchor, has_else, has_transitions, if_exists_condition }, detaching) {
       const select_block_type = this.renderer.component.get_unique_name("select_block_type");
       const current_block_type_index = block.get_unique_name("current_block_type_index");
@@ -21727,6 +22238,10 @@ ${this.frame}`;
         return bitmask;
       };
       return {
+        // Using a ParenthesizedExpression allows us to create
+        // the expression lazily. TODO would be better if
+        // context was determined before rendering, so that
+        // this indirection was unnecessary
         type: "ParenthesizedExpression",
         get expression() {
           const bitmask = get_bitmask();
@@ -21740,6 +22255,8 @@ ${this.frame}`;
         }
       };
     }
+    // NOTE: this method may be called before this.context_overflow / this.context is fully defined
+    // therefore, they can only be evaluated later in a getter function
     get_initial_dirty() {
       const _this = this;
       const val = x`-1`;
@@ -21747,6 +22264,7 @@ ${this.frame}`;
         get type() {
           return _this.context_overflow ? "ArrayExpression" : "UnaryExpression";
         },
+        // as [-1]
         get elements() {
           const elements = [];
           for (let i = 0; i < _this.context.length; i += 31) {
@@ -21754,6 +22272,7 @@ ${this.frame}`;
           }
           return elements;
         },
+        // as -1
         operator: val.operator,
         prefix: val.prefix,
         argument: val.argument
@@ -21920,6 +22439,10 @@ ${this.frame}`;
       this.filename = filename;
       this.content = content;
     }
+    /**
+     * Tracing a `SourceMapSegment` ends when we get to an `OriginalSource`,
+     * meaning this line/column location originated from this source file.
+     */
     traceSegment(line, column, name) {
       return { column, line, name, source: this };
     }
@@ -22018,6 +22541,10 @@ ${this.frame}`;
       this.indexes = /* @__PURE__ */ Object.create(null);
       this.array = [];
     }
+    /**
+     * Puts `key` into the backing array, if it is not already present. Returns
+     * the index of the `key` in the backing array.
+     */
     put(key) {
       const { array, indexes } = this;
       let index = indexes[key];
@@ -22033,6 +22560,11 @@ ${this.frame}`;
       this.map = map;
       this.sources = sources;
     }
+    /**
+     * traceMappings is only called on the root level SourceMapTree, and begins
+     * the process of resolving each mapping in terms of the original source
+     * files.
+     */
     traceMappings() {
       const mappings = [];
       const names2 = new FastStringArray();
@@ -22069,6 +22601,10 @@ ${this.frame}`;
         sourcesContent
       }, this.map);
     }
+    /**
+     * traceSegment is only called on children SourceMapTrees. It recurses down
+     * into its own child SourceMapTrees, until we find the original source map.
+     */
     traceSegment(line, column, name) {
       const { mappings, names: names2 } = this.map;
       if (line >= mappings.length)
@@ -22086,7 +22622,13 @@ ${this.frame}`;
       if (segment.length === 1)
         return null;
       const source = this.sources[segment[1]];
-      return source.traceSegment(segment[2], segment[3], segment.length === 5 ? names2[segment[4]] : name);
+      return source.traceSegment(
+        segment[2],
+        segment[3],
+        // A child map's recorded name for this segment takes precedence over the
+        // parent's mapped name. Imagine a mangler changing the name over, etc.
+        segment.length === 5 ? names2[segment[4]] : name
+      );
     }
   };
   function segmentComparator$1(segment, column) {
@@ -22151,13 +22693,26 @@ Did you specify these with the most recent transformation maps first?`);
     if (sourcemap_list.length == 0)
       return null;
     let map_idx = 1;
-    const map = sourcemap_list.slice(0, -1).find((m) => m.sources.length !== 1) === void 0 ? remapping(sourcemap_list, () => null, true) : remapping(sourcemap_list[0], function loader(sourcefile) {
-      if (sourcefile === filename && sourcemap_list[map_idx]) {
-        return sourcemap_list[map_idx++];
-      } else {
-        return null;
-      }
-    }, true);
+    const map = sourcemap_list.slice(0, -1).find((m) => m.sources.length !== 1) === void 0 ? remapping(
+      // use array interface
+      // only the oldest sourcemap can have multiple sources
+      sourcemap_list,
+      () => null,
+      true
+      // skip optional field `sourcesContent`
+    ) : remapping(
+      // use loader interface
+      sourcemap_list[0],
+      // last map
+      function loader(sourcefile) {
+        if (sourcefile === filename && sourcemap_list[map_idx]) {
+          return sourcemap_list[map_idx++];
+        } else {
+          return null;
+        }
+      },
+      true
+    );
     if (!map.file)
       delete map.file;
     if (!map.sources.length)
@@ -22537,7 +23092,8 @@ Did you specify these with the most recent transformation maps first?`);
 
 				${inject_state && b`$$self.$inject_state = ${inject_state};`}
 
-				${props_inject}
+				${/* before reactive declarations */
+      props_inject}
 
 				${reactive_declarations.length > 0 && b`
 				$$self.$$.update = () => {
@@ -23892,7 +24448,12 @@ Did you specify these with the most recent transformation maps first?`);
         mappings.advance(chunk.intro);
       }
       if (chunk.edited) {
-        mappings.addEdit(sourceIndex, chunk.content, loc, chunk.storeName ? names2.indexOf(chunk.original) : -1);
+        mappings.addEdit(
+          sourceIndex,
+          chunk.content,
+          loc,
+          chunk.storeName ? names2.indexOf(chunk.original) : -1
+        );
       } else {
         mappings.addUneditedChunk(sourceIndex, chunk, this$1.original, loc, this$1.sourcemapLocations);
       }
@@ -24279,7 +24840,9 @@ Did you specify these with the most recent transformation maps first?`);
   MagicString.prototype._splitChunk = function _splitChunk(chunk, index) {
     if (chunk.edited && chunk.content.length) {
       var loc = getLocator$1(this.original)(index);
-      throw new Error("Cannot split a chunk that has already been edited (" + loc.line + ":" + loc.column + ' \u2013 "' + chunk.original + '")');
+      throw new Error(
+        "Cannot split a chunk that has already been edited (" + loc.line + ":" + loc.column + ' \u2013 "' + chunk.original + '")'
+      );
     }
     var newChunk = chunk.split(index);
     this.byEnd[index] = chunk;
@@ -25259,7 +25822,7 @@ Did you specify these with the most recent transformation maps first?`);
     }
   };
   var test = typeof process !== "undefined" && process.env.TEST;
-  var TemplateScope = class {
+  var TemplateScope = class _TemplateScope {
     constructor(parent) {
       this.owners = /* @__PURE__ */ new Map();
       this.parent = parent;
@@ -25273,7 +25836,7 @@ Did you specify these with the most recent transformation maps first?`);
       return this;
     }
     child() {
-      const child = new TemplateScope(this);
+      const child = new _TemplateScope(this);
       return child;
     }
     is_top_level(name) {
@@ -26578,7 +27141,8 @@ ${frame}`
 
   // compiler.ts
   function compile2(input) {
-    const { code, path, target, dev, css } = input;
+    const opts = JSON.parse(input);
+    const { code, path, target, dev, css } = opts;
     const svelte = compile(code, {
       filename: path,
       generate: target,
@@ -26588,8 +27152,8 @@ ${frame}`
       css
     });
     return JSON.stringify({
-      CSS: svelte.css.code,
-      JS: svelte.js.code
+      css: svelte.css.code,
+      js: svelte.js.code
     });
   }
   return __toCommonJS(compiler_exports);
