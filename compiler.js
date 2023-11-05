@@ -30,7 +30,7 @@ var __svelte__ = (() => {
     compile: () => compile2
   });
 
-  // shimssr.ts
+  // compiler_shim.ts
   var URL = class {
     constructor(url) {
       console.log(url);
@@ -27147,7 +27147,6 @@ ${frame}`
       filename: path,
       generate: target,
       hydratable: true,
-      format: "esm",
       dev,
       css
     });

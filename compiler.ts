@@ -1,6 +1,6 @@
 import { compile as compileSvelte } from "svelte/compiler"
 
-type Input = {
+export type Input = {
   code: string
   path: string
   target: "ssr" | "dom"
@@ -8,7 +8,7 @@ type Input = {
   css: boolean
 }
 
-type Output =
+export type Output =
   | {
       js: string
       css: string
@@ -31,7 +31,6 @@ export function compile(input: string): string {
     filename: path,
     generate: target,
     hydratable: true,
-    format: "esm",
     dev: dev,
     css: css,
   })

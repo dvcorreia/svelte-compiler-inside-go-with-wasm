@@ -11,10 +11,8 @@ import (
 
 // Adapted code from bud (ref: github.com/livebud/bud).
 
-//go:generate esbuild compiler.ts --format=iife --global-name=__svelte__ --bundle --platform=node --inject:shimssr.ts --external:url --outfile=compiler.js --log-level=warning
+//go:generate esbuild compiler.ts --format=iife --global-name=__svelte__ --bundle --platform=node --inject:compiler_shim.ts --external:url --outfile=compiler.js --log-level=warning
 
-// compiler.js is used to compile .svelte files into JS & CSS
-//
 //go:embed compiler.js
 var compiler string
 
