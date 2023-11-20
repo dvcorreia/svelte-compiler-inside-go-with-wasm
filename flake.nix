@@ -11,7 +11,13 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        buildDeps = with pkgs; [ git go_1_20 gnumake esbuild nodejs_18];
+        buildDeps = with pkgs; [
+          git
+          go_1_20
+          gnumake
+          esbuild
+          nodejs_18
+        ];
         devDeps = with pkgs;
           buildDeps ++ [
             wasmtime

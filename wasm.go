@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 //go:generate esbuild wasm_compiler.ts --format=iife --bundle --inject:compiler_shim.ts --external:url --outfile=wasm_compiler.js --log-level=warning
@@ -21,12 +22,14 @@ func LoadWASM(r wazero.Runtime, outputFormat Generate) (Compiler, error) {
 		return nil, err
 	}
 
+	wasi_snapshot_preview1.MustInstantiate(context.Background(), r)
+
 	c := &WASM{
 		Dev:          true,
 		OutputFormat: outputFormat,
 
-		runtime: r,
-		wasm:    compiledWasm,
+		r:            r,
+		compiledWasm: compiledWasm,
 	}
 
 	return c, nil
@@ -36,11 +39,11 @@ type WASM struct {
 	Dev          bool
 	OutputFormat Generate
 
-	runtime wazero.Runtime
-	wasm    wazero.CompiledModule
+	r            wazero.Runtime
+	compiledWasm wazero.CompiledModule
 }
 
-func (c WASM) Compile(path string, code []byte) (*CompileResult, error) {
+func (c *WASM) Compile(path string, code []byte) (*CompileResult, error) {
 	type input struct {
 		Code   string   `json:"code"`
 		Path   string   `json:"path"`
@@ -67,28 +70,37 @@ func (c WASM) Compile(path string, code []byte) (*CompileResult, error) {
 		Css:    string(css),
 	}
 
-	buf := new(bytes.Buffer)
+	bufIn, bufOut := new(bytes.Buffer), new(bytes.Buffer)
 
-	e := json.NewEncoder(buf)
-	e.SetEscapeHTML(false)
+	eIn := json.NewEncoder(bufIn)
+	eIn.SetEscapeHTML(false)
 
-	if err := e.Encode(&opts); err != nil {
+	if err := eIn.Encode(&opts); err != nil {
 		return nil, err
 	}
 
-	// TODO: run the code
-	// instance, err := c.runtime.InstantiateModule(
-	// 	context.Background(),
-	// 	c.wasm,
-	// 	wazero.NewModuleConfig().WithName(""),
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
+	eOut := json.NewDecoder(bufOut)
 
-	// g := instance.ExportedFunction("what name?")
+	configuration := wazero.NewModuleConfig().
+		WithStdout(bufOut).
+		WithStdin(bufIn).
+		WithSysNanosleep().
+		WithSysNanotime().
+		WithSysWalltime()
 
-	// _ = g
+	_, err := c.r.InstantiateModule(
+		context.Background(),
+		c.compiledWasm,
+		configuration,
+	)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	var result CompileResult
+	if err := eOut.Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
