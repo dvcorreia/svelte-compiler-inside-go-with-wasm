@@ -10,6 +10,40 @@ import (
 	"github.com/tetratelabs/wazero"
 )
 
+func BenchmarkWasmSSR(b *testing.B) {
+	r := wazero.NewRuntime(context.Background())
+	defer r.Close(context.Background())
+
+	compiler, err := LoadWASM(r, GenerateSSR)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkWasmDOM(b *testing.B) {
+	r := wazero.NewRuntime(context.Background())
+	defer r.Close(context.Background())
+
+	compiler, err := LoadWASM(r, GenerateDOM)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestWasmSSR(t *testing.T) {
 	is := is.New(t)
 	r := wazero.NewRuntime(context.Background())

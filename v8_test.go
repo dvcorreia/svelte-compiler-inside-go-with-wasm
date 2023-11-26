@@ -8,6 +8,44 @@ import (
 	"github.com/matryer/is"
 )
 
+func BenchmarkV8SSR(b *testing.B) {
+	vm, err := v8.Load()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	compiler, err := LoadV8(vm, GenerateSSR)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkV8DOM(b *testing.B) {
+	vm, err := v8.Load()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	compiler, err := LoadV8(vm, GenerateDOM)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestV8SSR(t *testing.T) {
 	is := is.New(t)
 	vm, err := v8.Load()
