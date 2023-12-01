@@ -1,6 +1,12 @@
 # Project specific
 wasm
 
+# Benchmark and profiling files
+*.txt
+*.out
+*.test
+*.svg
+
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 
 # Logs

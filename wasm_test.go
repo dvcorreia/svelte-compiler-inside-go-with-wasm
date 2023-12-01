@@ -1,4 +1,4 @@
-package svelte
+package svelte_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dvcorreia/go-svelte"
 	"github.com/matryer/is"
 	"github.com/tetratelabs/wazero"
 )
@@ -14,13 +15,14 @@ func BenchmarkWasmSSR(b *testing.B) {
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
 
-	compiler, err := LoadWASM(r, GenerateSSR)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateSSR)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		_, err := compiler.Compile("test.svelte", benchCode)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -31,13 +33,14 @@ func BenchmarkWasmDOM(b *testing.B) {
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
 
-	compiler, err := LoadWASM(r, GenerateDOM)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateDOM)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		_, err := compiler.Compile("test.svelte", benchCode)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -48,7 +51,7 @@ func TestWasmSSR(t *testing.T) {
 	is := is.New(t)
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
-	compiler, err := LoadWASM(r, GenerateSSR)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateSSR)
 	is.NoErr(err)
 	res, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
 	is.NoErr(err)
@@ -61,7 +64,7 @@ func TestWasmSSRRecovery(t *testing.T) {
 	is := is.New(t)
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
-	compiler, err := LoadWASM(r, GenerateSSR)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateSSR)
 	is.NoErr(err)
 	ssr, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1></h1>`))
 	is.True(err != nil)
@@ -79,7 +82,7 @@ func TestWasmDOM(t *testing.T) {
 	is := is.New(t)
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
-	compiler, err := LoadWASM(r, GenerateDOM)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateDOM)
 	is.NoErr(err)
 	dom, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
 	is.NoErr(err)
@@ -94,7 +97,7 @@ func TestWasmDOMRecovery(t *testing.T) {
 	is := is.New(t)
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
-	compiler, err := LoadWASM(r, GenerateDOM)
+	compiler, err := svelte.LoadWASM(r, svelte.GenerateDOM)
 	is.NoErr(err)
 	dom, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1></h1>`))
 	is.True(err != nil)

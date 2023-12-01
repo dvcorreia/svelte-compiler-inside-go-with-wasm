@@ -1,9 +1,10 @@
-package svelte
+package svelte_test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/dvcorreia/go-svelte"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/matryer/is"
 )
@@ -14,13 +15,14 @@ func BenchmarkV8SSR(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	compiler, err := LoadV8(vm, GenerateSSR)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateSSR)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		_, err := compiler.Compile("test.svelte", benchCode)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -33,13 +35,14 @@ func BenchmarkV8DOM(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	compiler, err := LoadV8(vm, GenerateDOM)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateDOM)
 	if err != nil {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
+		_, err := compiler.Compile("test.svelte", benchCode)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -50,7 +53,7 @@ func TestV8SSR(t *testing.T) {
 	is := is.New(t)
 	vm, err := v8.Load()
 	is.NoErr(err)
-	compiler, err := LoadV8(vm, GenerateSSR)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateSSR)
 	is.NoErr(err)
 	r, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
 	is.NoErr(err)
@@ -62,7 +65,7 @@ func TestV8SSRRecovery(t *testing.T) {
 	is := is.New(t)
 	vm, err := v8.Load()
 	is.NoErr(err)
-	compiler, err := LoadV8(vm, GenerateSSR)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateSSR)
 	is.NoErr(err)
 	ssr, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1></h1>`))
 	is.True(err != nil)
@@ -79,7 +82,7 @@ func TestV8DOM(t *testing.T) {
 	is := is.New(t)
 	vm, err := v8.Load()
 	is.NoErr(err)
-	compiler, err := LoadV8(vm, GenerateDOM)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateDOM)
 	is.NoErr(err)
 	dom, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1>`))
 	is.NoErr(err)
@@ -93,7 +96,7 @@ func TestV8DOMRecovery(t *testing.T) {
 	is := is.New(t)
 	vm, err := v8.Load()
 	is.NoErr(err)
-	compiler, err := LoadV8(vm, GenerateDOM)
+	compiler, err := svelte.LoadV8(vm, svelte.GenerateDOM)
 	is.NoErr(err)
 	dom, err := compiler.Compile("test.svelte", []byte(`<h1>hi world!</h1></h1>`))
 	is.True(err != nil)
@@ -107,5 +110,3 @@ func TestV8DOMRecovery(t *testing.T) {
 	is.True(strings.Contains(dom.JS, `element("h1")`))
 	is.True(strings.Contains(dom.JS, `text("hi world!")`))
 }
-
-// TODO: test compiler.Dev = false
