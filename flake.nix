@@ -21,6 +21,7 @@
         devDeps = with pkgs;
           buildDeps ++ [
             wasmtime
+            gotools
           ];
       in
       { devShell = pkgs.mkShell { buildInputs = devDeps; }; }

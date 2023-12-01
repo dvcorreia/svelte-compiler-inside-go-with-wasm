@@ -10,6 +10,10 @@ import (
 )
 
 func BenchmarkV8SSR(b *testing.B) {
+	benchmarkV8SSR(b)
+}
+
+func benchmarkV8SSR(b *testing.B) {
 	vm, err := v8.Load()
 	if err != nil {
 		b.Fatal(err)
@@ -30,6 +34,10 @@ func BenchmarkV8SSR(b *testing.B) {
 }
 
 func BenchmarkV8DOM(b *testing.B) {
+	benchmarkV8DOM(b)
+}
+
+func benchmarkV8DOM(b *testing.B) {
 	vm, err := v8.Load()
 	if err != nil {
 		b.Fatal(err)

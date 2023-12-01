@@ -12,6 +12,10 @@ import (
 )
 
 func BenchmarkWasmSSR(b *testing.B) {
+	benchmarkWasmSSR(b)
+}
+
+func benchmarkWasmSSR(b *testing.B) {
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
 
@@ -30,6 +34,10 @@ func BenchmarkWasmSSR(b *testing.B) {
 }
 
 func BenchmarkWasmDOM(b *testing.B) {
+	benchmarkWasmDOM(b)
+}
+
+func benchmarkWasmDOM(b *testing.B) {
 	r := wazero.NewRuntime(context.Background())
 	defer r.Close(context.Background())
 
