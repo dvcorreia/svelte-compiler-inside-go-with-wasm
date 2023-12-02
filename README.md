@@ -1,6 +1,12 @@
-## Results
+## Example
 
 ```console
+wget -O - -o /dev/null https://raw.githubusercontent.com/sveltejs/svelte/main/documentation/examples/01-reactivity/00-reactive-assignments/App.svelte | go run examples/compiler-wasm/main.go
+```
+
+## Results
+
+```
 goos: darwin
 goarch: amd64
 pkg: github.com/dvcorreia/go-svelte
@@ -26,7 +32,7 @@ go install golang.org/x/perf/cmd/...@latest
 
 Running external code ~=64% of the time, so no optimize will fix the extremelly low performance we are seeing.
 
-```console
+```
 Showing nodes accounting for 6800ms, 87.07% of 7810ms total
 Dropped 141 nodes (cum <= 39.05ms)
 Showing top 10 nodes out of 78
@@ -56,7 +62,7 @@ CGO_ENABLED=1 go test -v -run ^TestWasmDOM$ github.com/dvcorreia/go-svelte
 
 Gives:
 
-```console
+```
 # github.com/dvcorreia/go-svelte.test
 /nix/store/8zv2194v9gl0hlx2ac8p91ihnjwdwm6g-go-1.20.10/share/go/pkg/tool/darwin_amd64/link: running clang++ failed: exit status 1
 Undefined symbols for architecture x86_64:
